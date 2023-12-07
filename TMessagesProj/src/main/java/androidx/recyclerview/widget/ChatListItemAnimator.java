@@ -5,6 +5,9 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
 import android.view.animation.Interpolator;
@@ -14,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.ViewCompat;
 
+import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageReceiver;
@@ -26,6 +30,7 @@ import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.ChatGreetingsView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.spoilers.RemovingDustEffect;
 import org.telegram.ui.TextMessageEnterTransition;
 import org.telegram.ui.VoiceMessageEnterTransition;
 
@@ -124,10 +129,74 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
             return;
         }
         // First, remove stuff
-        for (RecyclerView.ViewHolder holder : mPendingRemovals) {
-            animateRemoveImpl(holder);
+        if (!mPendingRemovals.isEmpty()) {
+            Rect rect = new Rect();
+            activity.dustEffectOverlay.getGlobalVisibleRect(rect);
+            int containerLeft = rect.left;
+
+            Bitmap continerBitmap = Bitmap.createBitmap(activity.dustEffectOverlay.getWidth(), activity.dustEffectOverlay.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas containerCanvas = new Canvas(continerBitmap);
+            ArrayList<Rect> positions = new ArrayList<>(mPendingRemovals.size());
+
+            for (RecyclerView.ViewHolder holder : mPendingRemovals) {
+                float translationX = holder.itemView.getTranslationX();
+
+                if (holder.itemView instanceof ChatMessageCell){
+                    ChatMessageCell chatCell = (ChatMessageCell) holder.itemView;
+                    if (!chatCell.transitionParams.wasDraw) break;
+
+                    chatCell.transitionParams.messageEntering = true;
+                    chatCell.canDrawBackgroundInParent = false;
+                    chatCell.setDrawSelectionBackground(false);
+                    chatCell.setCheckBoxVisible(false, false);
+                    chatCell.setChecked(false, false, false);
+//                    chatCell.setChecked(false, false, false) ;
+//                    chatCell.setSelectedBackgroundProgress(0f);
+//                    chatCell.transitionParams.changePinnedBottomProgress = 1f;
+//                    chatCell.setSelected(false);
+
+                    Rect lastBgRect = chatCell.transitionParams.lastDrawingBackgroundRect;
+                    holder.itemView.getGlobalVisibleRect(AndroidUtilities.rectTmp2);
+                    Bitmap cellBitmap = AndroidUtilities.snapshotView(holder.itemView);
+                    float mainLeft = AndroidUtilities.rectTmp2.left - containerLeft - translationX;
+                    float resultTop = -activity.blurredViewTopOffset + chatCell.getY() - chatCell.parentViewTopOffset;
+                    Rect rectT = new Rect((int) (mainLeft + lastBgRect.left), (int) resultTop, (int) (mainLeft + lastBgRect.right), (int) resultTop + cellBitmap.getHeight());
+                    rectT.intersect(0, 0, continerBitmap.getWidth(), continerBitmap.getHeight());
+                    positions.add(rectT);
+
+                    containerCanvas.drawBitmap(cellBitmap, mainLeft , resultTop, null);
+                    cellBitmap.recycle();
+                } else {
+                    // TODO
+                }
+            }
+
+//            Paint rectTestPaint = new Paint();
+//            rectTestPaint.setColor(ColorUtils.setAlphaComponent(Color.BLUE, 120));
+//            for (Rect position : positions) {
+//                containerCanvas.drawRect(position,rectTestPaint);
+//            }
+
+            Runnable firstFrameCallback = () -> {
+                for (RecyclerView.ViewHolder holder : mPendingRemovals) {
+                    holder.itemView.post(() -> animateRemoveImpl(holder));
+                }
+                mPendingRemovals.clear();
+            };
+
+            Boolean started = RemovingDustEffect.start(activity.dustEffectOverlay, continerBitmap, positions, firstFrameCallback);
+            if (started) {
+                for (MoveInfo moveInfo : mPendingMoves) {
+                    moveInfo.forcedDuration = 500;
+                }
+            } else {
+                for (RecyclerView.ViewHolder holder : mPendingRemovals) {
+                    animateRemoveImpl(holder);
+                }
+                mPendingRemovals.clear();
+            }
+
         }
-        mPendingRemovals.clear();
         // Next, move stuff
         if (movesPending) {
             final ArrayList<MoveInfo> moves = new ArrayList<>();
@@ -356,7 +425,6 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
                 if (deltaY != 0) {
                     holder.itemView.setTranslationY(-deltaY);
                 }
-
                 if (holder.itemView instanceof ChatMessageCell) {
                     ChatMessageCell chatMessageCell = (ChatMessageCell) holder.itemView;
                     if (deltaX != 0) {
@@ -845,7 +913,7 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         if (translationInterpolator != null) {
             animatorSet.setInterpolator(translationInterpolator);
         }
-        animatorSet.setDuration(getMoveDuration());
+        animatorSet.setDuration(moveInfo.forcedDuration != 0 ? moveInfo.forcedDuration : getMoveDuration());
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationStart(Animator animator) {

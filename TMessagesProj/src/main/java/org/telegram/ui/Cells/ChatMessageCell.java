@@ -206,6 +206,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     public ExpiredStoryView expiredStoryView;
     private boolean skipFrameUpdate;
+    private MessageObject messageObject;
 
     public RadialProgress2 getRadialProgress() {
         return radialProgress;
@@ -259,6 +260,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void setAvatar(MessageObject messageObject) {
+        this.messageObject = messageObject;
         if (messageObject == null) {
             return;
         }
@@ -799,7 +801,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private CheckBoxBase checkBox;
     private boolean checkBoxVisible;
     private boolean checkBoxAnimationInProgress;
-    private float checkBoxAnimationProgress;
+    public float checkBoxAnimationProgress;
     private long lastCheckBoxAnimationTime;
     private int checkBoxTranslation;
 
@@ -1123,7 +1125,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private int availableTimeWidth;
     private int widthBeforeNewTimeLine;
 
-    private int backgroundWidth = 100;
+    public int backgroundWidth = 100;
     private boolean hasNewLineForTime;
 
     private int layoutWidth;
@@ -1311,7 +1313,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     private float viewTop;
     private int backgroundHeight;
-    private int blurredViewTopOffset;
+    public int blurredViewTopOffset;
     private int blurredViewBottomOffset;
 
     private boolean scheduledInvalidate;
@@ -1389,7 +1391,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     VideoPlayerRewinder videoPlayerRewinder;
 
     private Theme.ResourcesProvider resourcesProvider;
-    private final boolean canDrawBackgroundInParent;
+    public boolean canDrawBackgroundInParent;
     private ChatMessageSharedResources sharedResources;
 
     // Public for enter transition

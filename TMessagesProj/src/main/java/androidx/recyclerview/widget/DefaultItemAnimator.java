@@ -66,6 +66,7 @@ public class DefaultItemAnimator extends SimpleItemAnimator {
     protected static class MoveInfo {
         public RecyclerView.ViewHolder holder;
         public int fromX, fromY, toX, toY;
+        public long forcedDuration;
 
         public MoveInfo(RecyclerView.ViewHolder holder, int fromX, int fromY, int toX, int toY) {
             this.holder = holder;

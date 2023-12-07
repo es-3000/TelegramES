@@ -958,6 +958,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         }
     };
 
+    public FrameLayout dustEffectOverlay;
     private ChatSelectionReactionMenuOverlay selectionReactionsOverlay;
 
     private boolean isPauseOnThemePreview;
@@ -5724,6 +5725,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         });
 
         contentView.addView(chatListView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        dustEffectOverlay = new FrameLayout(context);
+        contentView.addView(dustEffectOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         selectionReactionsOverlay = new ChatSelectionReactionMenuOverlay(this, context);
         contentView.addView(selectionReactionsOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
